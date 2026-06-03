@@ -191,21 +191,28 @@ export default function KanjiQuiz() {
 
   // Quick start from URL params
   useEffect(() => {
-    if (quickStarted.current) return
     const quick = searchParams.get('quick')
     if (quick && phase === PHASE_SETUP) {
-      quickStarted.current = true
+      const lessonParamRaw = searchParams.get('lesson') || ''
+      const quickKey = `quick:${quick}:lesson:${lessonParamRaw || 'all'}:mode:${quizMode}`
+      if (quickStarted.current === quickKey) return
       const count = parseInt(quick, 10) || 5
       const t = setTimeout(() => {
-        const lessonParam = parseInt(searchParams.get('lesson') || '', 10)
+        const lessonParam = parseInt(lessonParamRaw, 10)
         const quickLessons = Number.isFinite(lessonParam) && kanjiLessonInfo.some(l => l.id === lessonParam)
           ? [lessonParam]
           : kanjiLessonInfo.map(l => l.id)
         const pool = kanji.filter(k => quickLessons.includes(k.lesson))
         if (pool.length < 4) return
+        quickStarted.current = quickKey
         setSelectedLessons(quickLessons)
         const selected = shuffle(pool).slice(0, Math.min(count, pool.length))
-        const qs = selected.map(k => ({ kanji: k, options: generateOptions(k, pool, quizMode) }))
+        const qs = selected.map(k => {
+          const qmode = quizMode === 'both'
+            ? (['meaning', 'reading', 'reverse'][Math.floor(Math.random() * 3)])
+            : quizMode
+          return { kanji: k, options: generateOptions(k, pool, qmode), qmode }
+        })
         setQuestions(qs)
         setCurrentIndex(0)
         setScore(0)
@@ -215,6 +222,8 @@ export default function KanjiQuiz() {
         setBestStreak(0)
         setMistakes([])
         answerLockedRef.current = false
+        advanceLockedRef.current = false
+        xpAwardedRef.current = false
         setPhase(PHASE_QUIZ)
       }, 0)
       return () => clearTimeout(t)
@@ -239,6 +248,8 @@ export default function KanjiQuiz() {
     setBestStreak(0)
     setMistakes([])
     answerLockedRef.current = false
+    advanceLockedRef.current = false
+    xpAwardedRef.current = false
     setPhase(PHASE_QUIZ)
   }
 
@@ -266,14 +277,16 @@ export default function KanjiQuiz() {
     setBestStreak(0)
     setMistakes([])
     answerLockedRef.current = false
+    advanceLockedRef.current = false
     setShowCountdown(true)
     setPhase(PHASE_QUIZ)
   }
 
   const handleAnswer = useCallback((option) => {
-    if (selectedAnswer !== null || answerLockedRef.current) return
+    if (showCountdown || selectedAnswer !== null || answerLockedRef.current) return
     answerLockedRef.current = true
     advanceLockedRef.current = false
+    if (timerRef.current) clearTimeout(timerRef.current)
 
     const correct = option.kanji === questions[currentIndex].kanji.kanji
     setSelectedAnswer(option)
@@ -310,7 +323,7 @@ export default function KanjiQuiz() {
         answerLockedRef.current = false
       }
     }, delay)
-  }, [selectedAnswer, questions, currentIndex])
+  }, [showCountdown, selectedAnswer, questions, currentIndex])
 
   useEffect(() => {
     return () => {
@@ -323,6 +336,7 @@ export default function KanjiQuiz() {
   useEffect(() => { if (isTimed && phase === PHASE_QUIZ && !showCountdown) setTimeLeft(timeLimit) }, [currentIndex, isTimed, timeLimit, phase, showCountdown])
   useEffect(() => {
     if (!isTimed || phase !== PHASE_QUIZ || showCountdown || selectedAnswer !== null) { clearInterval(countdownRef.current); return }
+    clearInterval(countdownRef.current)
     countdownRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0.1) {
@@ -735,7 +749,7 @@ export default function KanjiQuiz() {
                   onClick={() => handleAnswer(opt)}
                   className="glass-sm quiz-option"
                   style={qmode === 'reverse' ? { ...optStyle, fontSize: '2.2rem', fontWeight: 900, minHeight: 72, lineHeight: 1 } : optStyle}
-                  disabled={selectedAnswer !== null}
+                  disabled={showCountdown || selectedAnswer !== null}
                 >
                   <span style={styles.optionNumber}>{i + 1}</span>
                   {getAnswerText(opt, qmode)}
