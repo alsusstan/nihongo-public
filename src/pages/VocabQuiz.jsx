@@ -824,6 +824,7 @@ export default function VocabQuiz() {
           typingMode={typingMode && isReverse}
           isTimed={isTimed}
           timeLimit={timeLimit}
+          isPaused={showCountdown}
           romajiInQuiz={romajiInQuiz}
         />
       )}
@@ -1305,7 +1306,7 @@ const rvStyles = {
   },
 }
 
-function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, isCorrect, score, streak, onAnswer, onNext, isEndless, isSuddenDeath, isReverse, typingMode, isTimed, timeLimit, romajiInQuiz }) {
+function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, isCorrect, score, streak, onAnswer, onNext, isEndless, isSuddenDeath, isReverse, typingMode, isTimed, timeLimit, isPaused, romajiInQuiz }) {
   const isMobile = useIsMobile()
   const progress = (isEndless || isSuddenDeath) ? 100 : ((currentIndex + 1) / totalQuestions) * 100
   const [timeLeft, setTimeLeft] = useState(timeLimit)
@@ -1346,10 +1347,11 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
 
   // Countdown timer
   useEffect(() => {
-    if (!isTimed || selectedAnswer !== null) {
+    if (!isTimed || isPaused || selectedAnswer !== null) {
       if (countdownRef.current) clearInterval(countdownRef.current)
       return
     }
+    if (countdownRef.current) clearInterval(countdownRef.current)
     countdownRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0.1) {
@@ -1362,14 +1364,14 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
       })
     }, 100)
     return () => { if (countdownRef.current) clearInterval(countdownRef.current) }
-  }, [isTimed, selectedAnswer, currentIndex, onAnswer])
+  }, [isTimed, isPaused, selectedAnswer, currentIndex, timeLimit, onAnswer])
 
   const timerPct = isTimed ? (timeLeft / timeLimit) * 100 : 100
   const timerUrgent = isTimed && timeLeft <= 3
 
   // Keyboard shortcuts: press 1-4 to select answer (only in choice mode, not typing)
   useEffect(() => {
-    if (typingMode) return
+    if (typingMode || isPaused) return
     const handler = (e) => {
       if (selectedAnswer !== null) return
       const num = parseInt(e.key, 10)
@@ -1379,7 +1381,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedAnswer, question, onAnswer, typingMode])
+  }, [selectedAnswer, question, onAnswer, typingMode, isPaused])
 
   // Pick feedback phrase once when answer is selected (stable across re-renders)
   const feedbackPhrase = useMemo(() => {
@@ -1551,7 +1553,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
               type="text"
               value={typingInput}
               onChange={(e) => setTypingInput(e.target.value)}
-              disabled={selectedAnswer !== null}
+              disabled={isPaused || selectedAnswer !== null}
               placeholder="type romaji..." aria-label="type romaji reading"
               spellCheck={false}
               autoComplete="off"
@@ -1570,9 +1572,9 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
             />
             <button
               type="submit"
-              disabled={selectedAnswer !== null || !typingInput.trim()}
+              disabled={isPaused || selectedAnswer !== null || !typingInput.trim()}
               className="btn btn-cute"
-              style={{ flexShrink: 0, opacity: selectedAnswer !== null || !typingInput.trim() ? 0.5 : 1, pointerEvents: selectedAnswer !== null ? 'none' : 'auto' }}
+              style={{ flexShrink: 0, opacity: isPaused || selectedAnswer !== null || !typingInput.trim() ? 0.5 : 1, pointerEvents: isPaused || selectedAnswer !== null ? 'none' : 'auto' }}
             >
               →
             </button>
@@ -1625,7 +1627,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
               onClick={() => onAnswer(opt)}
               className="glass-sm quiz-option"
               style={optStyle}
-              disabled={selectedAnswer !== null}
+              disabled={isPaused || selectedAnswer !== null}
             >
               <span style={styles.optionNumber}>{i + 1}</span>
               {isReverse ? (

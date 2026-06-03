@@ -465,6 +465,10 @@ input:focus, textarea:focus {
 /* quiz option hover */
 .quiz-option {
   transition: all 0.2s ease;
+  border-radius: 16px;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+  word-break: normal;
   /* Remove backdrop-filter: each button is at a different position, so blur captures
      a different slice of the gradient bg, making buttons look uneven in color */
   backdrop-filter: none !important;
@@ -704,6 +708,13 @@ input[type="range"].kawaii-slider::-moz-range-thumb {
   /* smaller glass padding on mobile */
   .glass { padding: 16px; }
   .glass-sm { padding: 10px 14px; }
+  .quiz-option {
+    border-radius: 14px !important;
+    min-height: 48px !important;
+    padding: 12px 12px !important;
+    font-size: 0.92rem !important;
+    line-height: 1.24 !important;
+  }
   /* disable hover effects on touch */
   .glass-hover:hover {
     transform: none !important;
@@ -724,6 +735,12 @@ input[type="range"].kawaii-slider::-moz-range-thumb {
   .btn { padding: 8px 13px; font-size: 0.85rem; }
   .btn-cute { padding: 9px 15px; }
   .glass { padding: 12px; }
+  .quiz-option {
+    border-radius: 12px !important;
+    min-height: 46px !important;
+    padding: 10px 11px !important;
+    font-size: 0.88rem !important;
+  }
 }
 
 @media (max-width: 380px) {
