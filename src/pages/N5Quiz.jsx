@@ -286,6 +286,7 @@ export default function N5Quiz() {
     setStreak(0)
     setBestStreak(0)
     answerLockedRef.current = false
+    advanceLockedRef.current = false
     setShowCountdown(true)
     setPhase(PHASE_QUIZ)
   }
@@ -311,6 +312,8 @@ export default function N5Quiz() {
     setSelectedAnswer(null)
     setIsCorrect(null)
     answerLockedRef.current = false
+    advanceLockedRef.current = false
+    xpAwardedRef.current = false
     setShowCountdown(true)
     setPhase(PHASE_QUIZ)
   }
@@ -319,6 +322,7 @@ export default function N5Quiz() {
     if (selectedAnswer !== null || answerLockedRef.current) return
     answerLockedRef.current = true
     advanceLockedRef.current = false
+    if (timerRef.current) clearTimeout(timerRef.current)
 
     const correct = isSameVocabWord(option, questions[currentIndex].word)
     setSelectedAnswer(option)
@@ -453,6 +457,7 @@ export default function N5Quiz() {
           isReverse={isReverse}
           isTimed={isTimed}
           timeLimit={timeLimit}
+          isPaused={showCountdown}
           onSkip={skipDelay}
         />
       )}
@@ -618,7 +623,7 @@ function SetupScreen({ questionCount, setQuestionCount, isReverse, setIsReverse,
   )
 }
 
-function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, isCorrect, score, streak, onAnswer, isReverse, isTimed, timeLimit, onSkip }) {
+function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, isCorrect, score, streak, onAnswer, isReverse, isTimed, timeLimit, isPaused, onSkip }) {
   const isMobile = useIsMobile()
   const progress = ((currentIndex + 1) / totalQuestions) * 100
   const [feedbackMsg] = useState(() => randomFeedback())
@@ -628,10 +633,11 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
 
   useEffect(() => { setShowHint(false) }, [currentIndex])
 
-  useEffect(() => { if (isTimed) setTimeLeft(timeLimit) }, [currentIndex, isTimed, timeLimit])
+  useEffect(() => { if (isTimed && !isPaused) setTimeLeft(timeLimit) }, [currentIndex, isTimed, timeLimit, isPaused])
 
   useEffect(() => {
-    if (!isTimed || selectedAnswer !== null) { clearInterval(countdownRef.current); return }
+    if (!isTimed || isPaused || selectedAnswer !== null) { clearInterval(countdownRef.current); return }
+    clearInterval(countdownRef.current)
     countdownRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0.1) { clearInterval(countdownRef.current); onAnswer({ russian: '__TIMEOUT__', japanese: '', romaji: '' }); return 0 }
@@ -639,13 +645,14 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
       })
     }, 100)
     return () => clearInterval(countdownRef.current)
-  }, [isTimed, selectedAnswer, currentIndex, onAnswer])
+  }, [isTimed, isPaused, selectedAnswer, currentIndex, onAnswer])
 
   const timerPct = isTimed ? (timeLeft / timeLimit) * 100 : 100
   const timerUrgent = isTimed && timeLeft <= 3
 
   // Keyboard shortcuts: press 1-4 to select answer
   useEffect(() => {
+    if (isPaused) return
     const handler = (e) => {
       if (selectedAnswer !== null) return
       const num = parseInt(e.key, 10)
@@ -655,7 +662,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedAnswer, question, onAnswer])
+  }, [isPaused, selectedAnswer, question, onAnswer])
 
   return (
     <div className="animate-fadeInUp">
@@ -760,7 +767,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
               onClick={() => onAnswer(opt)}
               className="glass-sm quiz-option"
               style={optStyle}
-              disabled={selectedAnswer !== null}
+              disabled={isPaused || selectedAnswer !== null}
             >
               <span style={s.optionNumber}>{i + 1}</span>
               {isReverse ? (

@@ -107,6 +107,7 @@ export default function KanaQuiz() {
   useEffect(() => { if (isTimed && phase === PHASE_QUIZ && !showCountdown) setTimeLeft(timeLimit) }, [currentIndex, isTimed, timeLimit, phase, showCountdown])
   useEffect(() => {
     if (!isTimed || phase !== PHASE_QUIZ || showCountdown || selectedAnswer !== null) { clearInterval(countdownRef.current); return }
+    clearInterval(countdownRef.current)
     countdownRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0.1) {
@@ -175,6 +176,8 @@ export default function KanaQuiz() {
       setStreak(0)
       setBestStreak(0)
       answerLockedRef.current = false
+      advanceLockedRef.current = false
+      xpAwardedRef.current = false
       setPhase(PHASE_QUIZ)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,10 +185,10 @@ export default function KanaQuiz() {
 
   // Quick start from URL params
   useEffect(() => {
-    if (quickStarted.current) return
     const quick = searchParams.get('quick')
     if (quick && phase === PHASE_SETUP) {
-      quickStarted.current = true
+      const quickKey = `quick:${quick}`
+      if (quickStarted.current === quickKey) return
       const count = parseInt(quick, 10) || 10
       const t = setTimeout(() => {
         // use all hiragana basic + dakuten
@@ -202,6 +205,7 @@ export default function KanaQuiz() {
         addFromScript(hiragana, 'hiragana')
         addFromScript(katakana, 'katakana')
         if (pool.length < 4) return
+        quickStarted.current = quickKey
         const selected = shuffle(pool).slice(0, Math.min(count, pool.length))
         const qs = selected.map(kana => ({ kana, options: generateOptions(kana, pool) }))
         setSelectedTypes(['hiragana', 'katakana'])
@@ -215,6 +219,8 @@ export default function KanaQuiz() {
         setStreak(0)
         setBestStreak(0)
         answerLockedRef.current = false
+        advanceLockedRef.current = false
+        xpAwardedRef.current = false
         setPhase(PHASE_QUIZ)
       }, 0)
       return () => clearTimeout(t)
@@ -243,6 +249,7 @@ export default function KanaQuiz() {
     setStreak(0)
     setBestStreak(0)
     answerLockedRef.current = false
+    advanceLockedRef.current = false
     setShowCountdown(true)
     setPhase(PHASE_QUIZ)
   }
@@ -268,14 +275,17 @@ export default function KanaQuiz() {
     setStreak(0)
     setBestStreak(0)
     answerLockedRef.current = false
+    advanceLockedRef.current = false
+    xpAwardedRef.current = false
     setShowCountdown(true)
     setPhase(PHASE_QUIZ)
   }
 
   const handleAnswer = useCallback((option) => {
-    if (selectedAnswer !== null || answerLockedRef.current) return
+    if (showCountdown || selectedAnswer !== null || answerLockedRef.current) return
     answerLockedRef.current = true
     advanceLockedRef.current = false
+    if (timerRef.current) clearTimeout(timerRef.current)
 
     const correct = option.romaji === questions[currentIndex].kana.romaji
     setSelectedAnswer(option)
@@ -308,11 +318,12 @@ export default function KanaQuiz() {
         answerLockedRef.current = false
       }
     }, delay)
-  }, [selectedAnswer, questions, currentIndex])
+  }, [showCountdown, selectedAnswer, questions, currentIndex])
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
+      clearInterval(countdownRef.current)
     }
   }, [])
 
@@ -703,7 +714,7 @@ export default function KanaQuiz() {
                   onClick={() => handleAnswer(opt)}
                   className="glass-sm quiz-option"
                   style={optStyle}
-                  disabled={selectedAnswer !== null}
+                  disabled={showCountdown || selectedAnswer !== null}
                 >
                   {opt.romaji}
                 </button>

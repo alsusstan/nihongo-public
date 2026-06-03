@@ -151,9 +151,10 @@ export default function GrammarQuiz() {
   useEffect(() => { setShowHint(false) }, [currentIndex])
 
   // Timer countdown
-  useEffect(() => { if (isTimed && phase === PHASE_QUIZ) setTimeLeft(timeLimit) }, [currentIndex, isTimed, timeLimit, phase])
+  useEffect(() => { if (isTimed && phase === PHASE_QUIZ && !showCountdown) setTimeLeft(timeLimit) }, [currentIndex, isTimed, timeLimit, phase, showCountdown])
   useEffect(() => {
-    if (!isTimed || phase !== PHASE_QUIZ || selectedAnswer !== null) { clearInterval(countdownRef.current); return }
+    if (!isTimed || phase !== PHASE_QUIZ || showCountdown || selectedAnswer !== null) { clearInterval(countdownRef.current); return }
+    clearInterval(countdownRef.current)
     countdownRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 0.1) {
@@ -166,7 +167,7 @@ export default function GrammarQuiz() {
     }, 100)
     return () => clearInterval(countdownRef.current)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTimed, phase, selectedAnswer, currentIndex])
+  }, [isTimed, phase, showCountdown, selectedAnswer, currentIndex])
 
   // Auto-select lessons on first load; if ?lesson=N param, pre-select just that lesson
   useEffect(() => {
@@ -183,15 +184,21 @@ export default function GrammarQuiz() {
 
   // Quick start: ?quick=N auto-starts with N questions
   useEffect(() => {
-    if (quickStarted.current || lessonPool.length === 0 || selectedLessons.length === 0 || phase !== PHASE_SETUP) return
+    if (lessonPool.length === 0 || selectedLessons.length === 0 || phase !== PHASE_SETUP) return
     const quick = searchParams.get('quick')
     if (!quick) return
-    quickStarted.current = true
+    const lessonKey = selectedLessons.join(',')
+    const quickKey = `quick:${quick}:lessons:${lessonKey}`
+    if (quickStarted.current === quickKey) return
     const count = parseInt(quick, 10) || 5
     setQuestionCount(count)
     const t = setTimeout(() => {
       const qs = buildGrammarQuestions(selectedLessons, count, lessonPool)
-      if (qs.length >= 1) { xpAwardedRef.current = false; resetQuizState(qs) }
+      if (qs.length >= 1) {
+        quickStarted.current = quickKey
+        xpAwardedRef.current = false
+        resetQuizState(qs)
+      }
     }, 300)
     return () => clearTimeout(t)
   }, [lessonPool, selectedLessons, phase]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -234,7 +241,9 @@ export default function GrammarQuiz() {
     setStreak(0)
     setBestStreak(0)
     setQuestionKey(0)
+    mistakesRef.current = []
     answerLockedRef.current = false
+    advanceLockedRef.current = false
     setShowCountdown(true)
     setPhase(PHASE_QUIZ)
   }
@@ -257,13 +266,15 @@ export default function GrammarQuiz() {
     })
     if (qs.length === 0) return
     setMistakesList([])
+    xpAwardedRef.current = false
     resetQuizState(qs)
   }
 
   const handleAnswer = useCallback((option) => {
-    if (selectedAnswer !== null || answerLockedRef.current) return
+    if (showCountdown || selectedAnswer !== null || answerLockedRef.current) return
     answerLockedRef.current = true
     advanceLockedRef.current = false
+    if (timerRef.current) clearTimeout(timerRef.current)
 
     const correct = quizMode === 'meaning'
       ? option.pattern === questions[currentIndex].grammar.pattern
@@ -304,7 +315,7 @@ export default function GrammarQuiz() {
         answerLockedRef.current = false
       }
     }, delay)
-  }, [selectedAnswer, questions, currentIndex, quizMode])
+  }, [showCountdown, selectedAnswer, questions, currentIndex, quizMode])
 
   const handleNext = useCallback(() => {
     if (!selectedAnswer || advanceLockedRef.current) return
@@ -325,12 +336,13 @@ export default function GrammarQuiz() {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
+      clearInterval(countdownRef.current)
     }
   }, [])
 
   // Keyboard shortcuts: press 1-4 to select answer
   useEffect(() => {
-    if (phase !== PHASE_QUIZ || questions.length === 0) return
+    if (phase !== PHASE_QUIZ || showCountdown || questions.length === 0) return
     const handler = (e) => {
       if (selectedAnswer !== null) return
       const num = parseInt(e.key, 10)
@@ -340,7 +352,7 @@ export default function GrammarQuiz() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [phase, selectedAnswer, questions, currentIndex, handleAnswer])
+  }, [phase, showCountdown, selectedAnswer, questions, currentIndex, handleAnswer])
 
   // Enter/Space to skip delay after answering
   useEffect(() => {
@@ -698,7 +710,7 @@ export default function GrammarQuiz() {
                   onClick={() => handleAnswer(opt)}
                   className="glass-sm quiz-option"
                   style={optStyle}
-                  disabled={selectedAnswer !== null}
+                  disabled={showCountdown || selectedAnswer !== null}
                 >
                   <span style={styles.optionNumber}>{i + 1}</span>
                   {quizMode === 'meaning' ? (
