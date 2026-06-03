@@ -30,7 +30,7 @@ dist-ssr
 # Textbook PDFs (large files, kept as local symlinks only)
 public/materials/
 
-# Textbook scans/images stay out of the public repository.
+# Textbook scans/images stay out of public copies and future commits.
 src/assets/lessons/
 public/lesson*.png
 public/lesson_*.jpg
