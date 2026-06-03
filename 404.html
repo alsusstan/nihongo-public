@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <meta name="theme-color" content="#fce7f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a0e24" media="(prefers-color-scheme: dark)" />
+    <meta name="description" content="nihongo app — learn Japanese with Minna no Nihongo" />
+    <link rel="manifest" href="/nihongo-public/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/nihongo-public/icon.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="nihongo" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>nihongo 🌸 にほんご</title>
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('nihongo-theme');
+          if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch(e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/nihongo-public/assets/index-B5dT6-k0.js"></script>
+    <link rel="modulepreload" crossorigin href="/nihongo-public/assets/react-vendor-DAV-XMxS.js">
+    <link rel="modulepreload" crossorigin href="/nihongo-public/assets/kanji-data-BC1SYiW2.js">
+    <link rel="modulepreload" crossorigin href="/nihongo-public/assets/lesson-data-Ba0gnu2K.js">
+    <link rel="stylesheet" crossorigin href="/nihongo-public/assets/index-DAgD_P0A.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
