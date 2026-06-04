@@ -685,7 +685,7 @@ export default function CounterQuiz() {
   }
 
   const handleAnswer = useCallback((option) => {
-    if (selectedAnswer !== null || answerLockedRef.current) return
+    if (showCountdown || selectedAnswer !== null || answerLockedRef.current) return
     answerLockedRef.current = true
     advanceLockedRef.current = false
 
@@ -719,7 +719,7 @@ export default function CounterQuiz() {
         answerLockedRef.current = false
       }
     }, delay)
-  }, [selectedAnswer, questions, currentIndex])
+  }, [showCountdown, selectedAnswer, questions, currentIndex])
 
   const skipDelay = useCallback(() => {
     if (advanceLockedRef.current) return
@@ -743,11 +743,11 @@ export default function CounterQuiz() {
   }, [])
 
   useEffect(() => {
-    if (isTimed) setTimeLeft(timeLimit)
-  }, [currentIndex, isTimed, timeLimit])
+    if (isTimed && !showCountdown) setTimeLeft(timeLimit)
+  }, [currentIndex, isTimed, timeLimit, showCountdown])
 
   useEffect(() => {
-    if (!isTimed || selectedAnswer !== null || phase !== PHASE_QUIZ) {
+    if (!isTimed || showCountdown || selectedAnswer !== null || phase !== PHASE_QUIZ) {
       clearInterval(countdownRef.current)
       return
     }
@@ -762,7 +762,7 @@ export default function CounterQuiz() {
       })
     }, 100)
     return () => clearInterval(countdownRef.current)
-  }, [isTimed, selectedAnswer, currentIndex, phase, handleAnswer])
+  }, [isTimed, showCountdown, selectedAnswer, currentIndex, phase, handleAnswer])
 
   // save score on results (only once per quiz session)
   useEffect(() => {
@@ -818,6 +818,7 @@ export default function CounterQuiz() {
           onAnswer={handleAnswer}
           quizMode={quizMode}
           isTimed={isTimed} timeLeft={timeLeft} timeLimit={timeLimit}
+          inputPaused={showCountdown}
           onSkip={skipDelay}
         />
       )}
@@ -987,13 +988,13 @@ function SetupScreen({ selectedCounterIds, toggleCounter, selectAll, quizMode, s
 
 // ─── Quiz Screen ────────────────────────────────────────────────────────────────
 
-function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, isCorrect, score, streak, onAnswer, quizMode, isTimed, timeLeft, timeLimit, onSkip }) {
+function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, isCorrect, score, streak, onAnswer, quizMode, isTimed, timeLeft, timeLimit, inputPaused = false, onSkip }) {
   const isMobile = useIsMobile()
   const progress = ((currentIndex + 1) / totalQuestions) * 100
 
   // Keyboard shortcuts: 1-4 to select answer
   useEffect(() => {
-    if (selectedAnswer !== null) return
+    if (inputPaused || selectedAnswer !== null) return
     const handler = (e) => {
       const num = parseInt(e.key, 10)
       if (num >= 1 && num <= 4 && question.options[num - 1]) {
@@ -1002,7 +1003,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectedAnswer, question.options, onAnswer])
+  }, [inputPaused, selectedAnswer, question.options, onAnswer])
 
   const COUNTER_FEEDBACK = ['✨ correct! sugoi~', '✨ yoku dekita!', '✨ kanpeki!', '✨ hai, seikai!', '✨ counter master!']
   const feedbackMsg = COUNTER_FEEDBACK[currentIndex % COUNTER_FEEDBACK.length]
@@ -1053,7 +1054,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
       </div>
 
       {/* keyboard hint */}
-      {!selectedAnswer && (
+      {!inputPaused && !selectedAnswer && (
         <div style={styles.keyboardHint}>
           <span style={styles.keyboardHintChip}>⌨ 1–4</span>
           <span style={styles.keyboardHintText}>to answer</span>
@@ -1081,7 +1082,7 @@ function QuizScreen({ question, currentIndex, totalQuestions, selectedAnswer, is
               onClick={() => onAnswer(opt)}
               className="glass-sm quiz-option"
               style={optStyle}
-              disabled={selectedAnswer !== null}
+              disabled={inputPaused || selectedAnswer !== null}
             >
               <span style={styles.optionMain}>{opt.text}</span>
               {quizMode === 'usage' && opt.description && (
