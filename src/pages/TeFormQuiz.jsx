@@ -389,7 +389,7 @@ export default function TeFormQuiz() {
   }, [advance])
 
   const handleChoose = useCallback((option) => {
-    if (selectedAnswer !== null || answerLockedRef.current) return
+    if (showCountdown || selectedAnswer !== null || answerLockedRef.current) return
     answerLockedRef.current = true
     advanceLockedRef.current = false
     setSelectedAnswer(option)
@@ -405,7 +405,7 @@ export default function TeFormQuiz() {
     }
 
     timerRef.current = setTimeout(advance, correct ? 1000 : 3500)
-  }, [selectedAnswer, questions, currentIndex, advance])
+  }, [showCountdown, selectedAnswer, questions, currentIndex, advance])
 
   const handleTypeSubmit = useCallback(() => {
     if (showCountdown) return
@@ -807,7 +807,7 @@ export default function TeFormQuiz() {
           {/* keyboard hint + romaji toggle */}
           {mode === 'choose' && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              {!selectedAnswer && <span style={s.keyHintChip}>⌨ 1–4 to answer</span>}
+              {!showCountdown && !selectedAnswer && <span style={s.keyHintChip}>⌨ 1–4 to answer</span>}
               {selectedAnswer && <span />}
               <button onClick={() => setShowRomaji(r => !r)} className="btn-hover" style={s.romajiToggleBtn}>
                 {showRomaji ? 'скрыть ромадзи' : 'あ ромадзи'}
@@ -831,7 +831,7 @@ export default function TeFormQuiz() {
                     onClick={() => handleChoose(opt)}
                     className="glass-sm quiz-option"
                     style={optStyle}
-                    disabled={selectedAnswer !== null}
+                    disabled={showCountdown || selectedAnswer !== null}
                   >
                     <span style={s.optionNumBadge}>{i + 1}</span>
                     <span>{opt.text}</span>

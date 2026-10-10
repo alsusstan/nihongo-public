@@ -87,6 +87,27 @@ function ScrollToTop() {
   return null
 }
 
+function QuizHoverIntent() {
+  useEffect(() => {
+    const root = document.documentElement
+    const enableHover = (event) => {
+      if (event.pointerType === 'mouse') root.classList.add('quiz-hover-ready')
+    }
+    const suspendHover = (event) => {
+      if (event.target.closest?.('.quiz-option')) root.classList.remove('quiz-hover-ready')
+    }
+
+    window.addEventListener('pointermove', enableHover, { passive: true })
+    window.addEventListener('pointerdown', suspendHover, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', enableHover)
+      window.removeEventListener('pointerdown', suspendHover)
+      root.classList.remove('quiz-hover-ready')
+    }
+  }, [])
+  return null
+}
+
 function App() {
   // Keep study timer ticking on every page (not just Home/Settings/Stats)
   useStudyTimer()
@@ -102,6 +123,7 @@ function App() {
   return (
     <>
       <ScrollToTop />
+      <QuizHoverIntent />
       <FallingItems />
       <FloatingDeco isHome={location.pathname === '/'} />
       {isStudyPage && <PeekingCharacter />}

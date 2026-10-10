@@ -481,13 +481,13 @@ input:focus, textarea:focus {
 [data-theme="dark"] .quiz-option:not(:disabled) {
   background: rgba(22, 8, 38, 0.75) !important;
 }
-@media (hover: hover) {
-  .quiz-option:not(:disabled):hover {
+@media (hover: hover) and (pointer: fine) {
+  .quiz-hover-ready .quiz-option:not(:disabled):hover {
     transform: translateY(-2px) scale(1.02) !important;
     box-shadow: 0 6px 20px rgba(236, 72, 153, 0.18);
     background: rgba(255, 255, 255, 0.92) !important;
   }
-  [data-theme="dark"] .quiz-option:not(:disabled):hover {
+  [data-theme="dark"].quiz-hover-ready .quiz-option:not(:disabled):hover {
     background: rgba(50, 18, 65, 0.82) !important;
   }
 }
