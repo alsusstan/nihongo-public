@@ -379,10 +379,12 @@ export default function DailyChallenge() {
   const shakeTimerRef = useRef(null)
   const quizStreakRef = useRef(0)
   const pendingAdvanceRef = useRef(null)
+  const answerLockedRef = useRef(false)
   useEffect(() => () => clearTimeout(shakeTimerRef.current), [])
 
   const handleAnswer = useCallback((option) => {
-    if (selected !== null) return
+    if (selected !== null || answerLockedRef.current) return
+    answerLockedRef.current = true
     const q = questions[current]
     const isCorrect = option === q.answer
 
@@ -409,6 +411,7 @@ export default function DailyChallenge() {
         setCurrent(prev => prev + 1)
         setSelected(null)
         setShowHint(false)
+        answerLockedRef.current = false
       } else {
         setPhase('results')
         if (!isRetryRef.current) {
@@ -457,6 +460,8 @@ export default function DailyChallenge() {
     setShowHint(false)
     quizStreakRef.current = 0
     setBestStreak(0)
+    answerLockedRef.current = false
+    pendingAdvanceRef.current = null
     setPhase('quiz')
   }
 

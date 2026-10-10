@@ -343,6 +343,7 @@ export default function GrammarPractice() {
   const [showFurigana, setShowFurigana] = useState(() => getStoredFlag('nihongo-show-furigana', '1', false))
   const startTimeRef = useRef(null)
   const xpAwardedRef = useRef(false)
+  const answerLockedRef = useRef(false)
   const advanceLockedRef = useRef(false)
 
   useEffect(() => {
@@ -389,14 +390,16 @@ export default function GrammarPractice() {
     setBestStreak(0)
     startTimeRef.current = Date.now()
     xpAwardedRef.current = false
+    answerLockedRef.current = false
     advanceLockedRef.current = false
     setPhase(PHASE_QUIZ)
   }
 
   const handleAnswer = (ans) => {
-    if (answeredWith !== null) return
+    if (answeredWith !== null || answerLockedRef.current) return
     const trimmed = ans.trim()
     if (!trimmed) return
+    answerLockedRef.current = true
     const correct = trimmed === questions[currentIndex].answer
     setAnsweredWith(trimmed)
     if (correct) {
@@ -424,6 +427,7 @@ export default function GrammarPractice() {
       setInputValue('')
       setInputMode(inputOnlyMode)
       setHintLevel(0)
+      answerLockedRef.current = false
     }
   }
 
@@ -439,6 +443,8 @@ export default function GrammarPractice() {
     setInputMode(false)
     setCompletionSeconds(null)
     startTimeRef.current = Date.now()
+    answerLockedRef.current = false
+    advanceLockedRef.current = false
     setPhase(PHASE_QUIZ)
   }
 

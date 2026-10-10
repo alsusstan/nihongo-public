@@ -292,6 +292,8 @@ export default function FuriganaQuiz() {
   const [loadError, setLoadError] = useState(false)
   const [mistakes, setMistakes] = useState([]) // words answered wrong
   const advanceTimerRef = useRef(null)
+  const answerLockedRef = useRef(false)
+  const lastAnswerAtRef = useRef(0)
 
   // Load data lazily
   useEffect(() => {
@@ -334,13 +336,18 @@ export default function FuriganaQuiz() {
     setWordStatus(null)
     setScore({ correct: 0, wrong: 0 })
     setMistakes([])
+    answerLockedRef.current = false
+    lastAnswerAtRef.current = 0
     setPhase(PHASES.QUIZ)
   }
 
   const currentQuestion = questions[wordIdx]
 
   function handleOptionSelect(reading) {
-    if (wordStatus !== null) return // already answered this word
+    const now = Date.now()
+    if (wordStatus !== null || answerLockedRef.current || !currentQuestion || now - lastAnswerAtRef.current < 350) return
+    answerLockedRef.current = true
+    lastAnswerAtRef.current = now
     const part = currentQuestion.parts[kanjiIdx]
     const isCorrect = reading === part.reading
     const newAnswers = [...answers, { reading, correct: isCorrect }]
@@ -379,6 +386,10 @@ export default function FuriganaQuiz() {
       }, 1600)
     }
   }
+
+  useEffect(() => {
+    answerLockedRef.current = false
+  }, [wordIdx, kanjiIdx])
 
   function finishQuiz(lastAnswers, lastWordCorrect) {
     const finalCorrect = score.correct + (lastWordCorrect ? 1 : 0)
