@@ -1182,6 +1182,7 @@ export default function SentenceBuilder() {
   const maxHints = 3
   const advanceTimer = useRef(null)
   const hintTimer = useRef(null)
+  const hintLockedRef = useRef(false)
   const advanceLockedRef = useRef(false)
   const xpAwardedRef = useRef(false)
 
@@ -1250,6 +1251,7 @@ export default function SentenceBuilder() {
     setTotalHintsUsed(0)
     setHintedIndices(new Set())
     setGlowingTileIdx(null)
+    hintLockedRef.current = false
     setShuffledWords(shuffle(picked[0].correct.map((w, i) => ({ word: w, originalIndex: i }))))
     setPhase(PHASE_GAME)
   }
@@ -1273,6 +1275,7 @@ export default function SentenceBuilder() {
     setTotalHintsUsed(0)
     setHintedIndices(new Set())
     setGlowingTileIdx(null)
+    hintLockedRef.current = false
     setShuffledWords(shuffle(picked[0].correct.map((w, i) => ({ word: w, originalIndex: i }))))
     setPhase(PHASE_GAME)
   }
@@ -1290,6 +1293,7 @@ export default function SentenceBuilder() {
       setHintsUsed(0)
       setHintedIndices(new Set())
       setGlowingTileIdx(null)
+      hintLockedRef.current = false
     }
   }, [currentIndex, phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1316,7 +1320,7 @@ export default function SentenceBuilder() {
 
   // use a hint: find the next correct tile, glow it, then auto-place after 500ms
   const useHintAction = useCallback(() => {
-    if (isCorrect !== null) return
+    if (isCorrect !== null || hintLockedRef.current) return
     if (hintsUsed >= maxHints) return
     if (!questions[currentIndex]) return
 
@@ -1333,6 +1337,7 @@ export default function SentenceBuilder() {
     if (tileIdx === -1) return
 
     // Track hint usage
+    hintLockedRef.current = true
     setHintsUsed(prev => prev + 1)
     setTotalHintsUsed(prev => prev + 1)
     setHintedIndices(prev => new Set([...prev, tileIdx]))
@@ -1346,6 +1351,7 @@ export default function SentenceBuilder() {
         if (prev.includes(tileIdx)) return prev
         return [...prev, tileIdx]
       })
+      hintLockedRef.current = false
     }, 500)
   }, [isCorrect, hintsUsed, maxHints, questions, currentIndex, selected, shuffledWords])
 
